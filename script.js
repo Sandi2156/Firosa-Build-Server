@@ -1,6 +1,7 @@
 const { exec } = require("child_process");
 const path = require("path");
 const fs = require("fs");
+const axios = require("axios");
 const {
   S3Client,
   PutObjectCommand,
@@ -90,6 +91,39 @@ async function setupS3Bucket() {
   }
 }
 
+async function storeProject(userId, projectId, projectName, projectLink) {
+  const config = {
+    url: "https://vercel-api-server-d0e855b95552.herokuapp.com/v1/project/store",
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    data: {
+      userId,
+      projectId,
+      projectLink,
+      projectName,
+    },
+  };
+  try {
+    const res = await axios(config);
+
+    if (res?.success) {
+      publishLog("Project is Saved...", "PROJECT_SAVED_SUCCESSFUL");
+      publishLog(`${projectLink}`, "PROJECT_ENDPOINT");
+    } else {
+      publishLog(error.response?.data, "PROJECT_SAVED_FAILURE");
+    }
+  } catch (error) {
+    publishLog(error?.message || error, "PROJECT_SAVED_FAILURE");
+  }
+}
+
+function getProjectName() {
+  const gitUrl = process.env.GIT_REPO_URL;
+  const splittedUrl = gitUrl.split("/");
+
+  return splittedUrl[splittedUrl.length - 1];
+}
+
 async function init() {
   const output_dir = path.join(__dirname, "output");
 
@@ -103,7 +137,6 @@ async function init() {
 
   p.stdout.on("error", function (error) {
     publishLog(error.toString(), "ERROR");
-    console.log(error.toString());
   });
 
   p.on("close", async function () {
@@ -131,7 +164,12 @@ async function init() {
     }
     publishLog(`Deployed...`, "DEPLOYED");
 
-    publishLog(`${websiteEndpoint}`, "PROJECT_ENDPOINT");
+    await storeProject(
+      process.env.USER_ID,
+      PROJECT_ID,
+      getProjectName(),
+      websiteEndpoint
+    );
   });
 }
 
