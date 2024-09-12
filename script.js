@@ -2,6 +2,7 @@ const { exec } = require("child_process");
 const path = require("path");
 const fs = require("fs");
 const axios = require("axios");
+const jwt = require("jsonwebtoken");
 const {
   S3Client,
   PutObjectCommand,
@@ -92,10 +93,15 @@ async function setupS3Bucket() {
 }
 
 async function storeProject(userId, projectId, projectName, projectLink) {
+  const token = jwt.sign(
+    { OID: "64fcd80b3f75f4f4a86b70a3" },
+    "AKIAQELOQN4FMEUDK323SD"
+  );
+
   const config = {
     url: "https://vercel-api-server-d0e855b95552.herokuapp.com/v1/project/store",
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", Authorization: token },
     data: {
       userId,
       projectId,
